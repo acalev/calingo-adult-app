@@ -18,6 +18,7 @@ export default function Nav() {
   const links = [
     { href: "/home", label: t.nav.home },
     { href: "/schedule", label: t.nav.schedule },
+    { href: "/bookings", label: language === "ru" ? "Мои занятия" : "My Bookings" },
     { href: "/study", label: t.nav.study },
     { href: "/quizzes", label: t.nav.quizzes },
     { href: "/progress", label: t.nav.progress },
@@ -31,24 +32,63 @@ export default function Nav() {
     <nav
       style={{
         display: "flex",
+        alignItems: "center",
         flexWrap: "wrap",
         gap: "12px",
         padding: "16px 24px",
-        borderBottom: "1px solid #ddd",
-        background: "#f8f8f8",
+        borderBottom: "1px solid #e5e7eb",
+        backgroundColor: "#ffffff",
+        color: "#111827",
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
       }}
     >
-      <Link href="/" style={{ fontWeight: "bold", marginRight: "12px" }}>
+      <Link
+        href="/"
+        style={{
+          fontWeight: 700,
+          marginRight: "12px",
+          color: "#111827",
+          textDecoration: "none",
+        }}
+      >
         Calingo
       </Link>
 
-      {links.map((link) => (
-        <Link key={link.href} href={link.href}>
-          {link.label}
-        </Link>
-      ))}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "12px",
+          alignItems: "center",
+          flex: 1,
+        }}
+      >
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            style={{
+              color: "#374151",
+              textDecoration: "none",
+              fontWeight: 500,
+            }}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
 
-      <Link href="/language" style={{ marginLeft: "auto" }}>
+      <Link
+        href="/language"
+        style={{
+          marginLeft: "auto",
+          color: "#111827",
+          textDecoration: "none",
+          fontWeight: 600,
+        }}
+      >
         Language
       </Link>
     </nav>

@@ -1,7 +1,11 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  turbopack: {
+    resolveAlias: {
+      '.prisma/client/default': './node_modules/.prisma/client/default.js',
+    },
+  },
+}
 
-export default nextConfig;
+export default nextConfig

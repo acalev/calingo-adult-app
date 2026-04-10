@@ -1,0 +1,405 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+  SUPPORT
+}
+
+enum CEFRLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+enum SlotType {
+  WEEKDAY_CLASS
+  SPEAKING_CLUB
+  SPECIAL_EVENT
+  EXAM
+}
+
+enum SlotStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+enum BookingStatus {
+  BOOKED
+  CANCELLED
+  ATTENDED
+  MISSED
+  WAITLIST_PROMOTED
+}
+
+enum WaitlistStatus {
+  ACTIVE
+  NOTIFIED
+  EXPIRED
+  PROMOTED
+  CANCELLED
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  FROZEN
+  EXPIRED
+  GRACE_PERIOD
+  CANCELED
+  PENDING
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  YOOKASSA
+  CLOUDPAYMENTS
+  WALLET
+  MANUAL
+}
+
+enum WalletTransactionType {
+  REFERRAL_PENDING
+  REFERRAL_CREDIT
+  REDEEM_SUBSCRIPTION
+  ADMIN_ADJUSTMENT
+  REVERSAL
+  EXPIRE
+  BONUS
+}
+
+enum WalletTransactionStatus {
+  PENDING
+  AVAILABLE
+  APPLIED
+  REVERSED
+  EXPIRED
+}
+
+enum ReferralStatus {
+  INVITED
+  REGISTERED
+  QUALIFIED
+  REWARDED
+  REJECTED
+}
+
+enum NotificationType {
+  CLASS_BOOKED
+  CLASS_REMINDER
+  CLASS_STARTING
+  WAITLIST_OPENED
+  STREAK_REMINDER
+  QUIZ_REMINDER
+  EXAM_REMINDER
+  REFERRAL_UPDATE
+  WALLET_UPDATE
+  SUBSCRIPTION_UPDATE
+  NEWS
+  SUPPORT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum AttendanceSource {
+  ADMIN
+  SYSTEM
+  ZOOM_IMPORT
+}
+
+model User {
+  id                   String     @id @default(cuid())
+  email                String     @unique
+  phone                String?
+  passwordHash         String?
+  fullName             String
+  role                 UserRole   @default(STUDENT)
+  level                CEFRLevel?
+  timezone             String     @default("Europe/Moscow")
+  isActive             Boolean    @default(true)
+  placementTestTakenAt DateTime?
+  referredByUserId     String?
+  referralCode         String     @unique
+  testScore            Int?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  referredBy            User?               @relation("UserReferrals", fields: [referredByUserId], references: [id])
+  referralsMade         User[]              @relation("UserReferrals")
+  bookings              Booking[]
+  waitlistEntries       WaitlistEntry[]
+  subscriptions         Subscription[]
+  payments              Payment[]
+  walletTransactions    WalletTransaction[]
+  referralInvitesSent   Referral[]          @relation("ReferralInviter")
+  referralInvitesJoined Referral[]          @relation("ReferralInvited")
+  notifications         Notification[]
+  attendanceRecords     Attendance[]
+  studyPlan             StudyPlan?
+  progress              UserProgress?
+}
+
+model ZoomRoom {
+  id        String     @id @default(cuid())
+  level     CEFRLevel?
+  slotType  SlotType
+  title     String
+  joinUrl   String
+  hostUrl   String?
+  isShared  Boolean    @default(true)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  slots Slot[]
+}
+
+model Slot {
+  id             String     @id @default(cuid())
+  title          String
+  description    String?
+  level          CEFRLevel?
+  slotType       SlotType
+  status         SlotStatus @default(SCHEDULED)
+  startsAt       DateTime
+  endsAt         DateTime
+  timezone       String     @default("Europe/Moscow")
+  seatCap        Int        @default(10)
+  bookedCount    Int        @default(0)
+  waitlistCount  Int        @default(0)
+  recurrenceRule String?
+  teacherName    String?
+  zoomRoomId     String?
+  summaryNotes   String?
+  replayUrl      String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  zoomRoom        ZoomRoom?       @relation(fields: [zoomRoomId], references: [id])
+  bookings        Booking[]
+  waitlistEntries WaitlistEntry[]
+  attendances     Attendance[]
+
+  @@unique([level, startsAt, slotType], name: "level_startsAt_slotType")
+  @@index([level, startsAt])
+  @@index([slotType, startsAt])
+  @@index([status, startsAt])
+}
+
+model Booking {
+  id                   String        @id @default(cuid())
+  userId               String
+  slotId               String
+  status               BookingStatus @default(BOOKED)
+  bookedAt             DateTime      @default(now())
+  cancelledAt          DateTime?
+  promotedFromWaitlist Boolean       @default(false)
+  notes                String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slot       Slot        @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  attendance Attendance?
+
+  @@unique([userId, slotId])
+  @@index([slotId, status])
+  @@index([userId, status])
+}
+
+model WaitlistEntry {
+  id         String         @id @default(cuid())
+  userId     String
+  slotId     String
+  position   Int
+  status     WaitlistStatus @default(ACTIVE)
+  notifiedAt DateTime?
+  expiresAt  DateTime?
+  promotedAt DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slot Slot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slotId])
+  @@unique([slotId, position])
+  @@index([slotId, status, position])
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  userId    String
+  slotId    String
+  bookingId String           @unique
+  attended  Boolean
+  markedAt  DateTime         @default(now())
+  source    AttendanceSource @default(SYSTEM)
+  notes     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slot    Slot    @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([userId, markedAt])
+  @@index([slotId, markedAt])
+}
+
+model Subscription {
+  id              String             @id @default(cuid())
+  userId          String
+  plan            SubscriptionPlan
+  status          SubscriptionStatus @default(PENDING)
+  startsAt        DateTime
+  endsAt          DateTime
+  frozenFrom      DateTime?
+  frozenUntil     DateTime?
+  canceledAt      DateTime?
+  autoRenew       Boolean            @default(true)
+  sourcePaymentId String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourcePayment Payment? @relation("SubscriptionSourcePayment", fields: [sourcePaymentId], references: [id])
+
+  @@index([userId, status])
+  @@index([startsAt, endsAt])
+}
+
+model Payment {
+  id                String          @id @default(cuid())
+  userId            String
+  provider          PaymentProvider
+  status            PaymentStatus   @default(PENDING)
+  amountRub         Int
+  walletCoinsUsed   Int             @default(0)
+  externalPaymentId String?
+  description       String?
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionFor    Subscription[]      @relation("SubscriptionSourcePayment")
+  walletTransactions WalletTransaction[]
+
+  @@unique([provider, externalPaymentId])
+  @@index([userId, status])
+  @@index([provider, status])
+}
+
+model WalletTransaction {
+  id           String                  @id @default(cuid())
+  userId       String
+  type         WalletTransactionType
+  status       WalletTransactionStatus @default(PENDING)
+  amountCoins  Int
+  balanceAfter Int?
+  referralId   String?
+  paymentId    String?
+  expiresAt    DateTime?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referral Referral? @relation(fields: [referralId], references: [id])
+  payment  Payment?  @relation(fields: [paymentId], references: [id])
+
+  @@index([userId, status, createdAt])
+}
+
+model Referral {
+  id            String         @id @default(cuid())
+  inviterUserId String
+  invitedUserId String?        @unique
+  invitedEmail  String?
+  status        ReferralStatus @default(INVITED)
+  rewardCoins   Int            @default(0)
+  qualifiedAt   DateTime?
+  rewardedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  inviter            User                @relation("ReferralInviter", fields: [inviterUserId], references: [id], onDelete: Cascade)
+  invitedUser        User?               @relation("ReferralInvited", fields: [invitedUserId], references: [id])
+  walletTransactions WalletTransaction[]
+
+  @@index([inviterUserId, status])
+}
+
+model StudyPlan {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  level                 CEFRLevel
+  weeklyTargetClasses   Int       @default(3)
+  weeklyTargetWords     Int       @default(30)
+  nextRecommendedSlotId String?
+  firstVocabularyPack   String?
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserProgress {
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  level              CEFRLevel
+  levelPercent       Float     @default(0)
+  vocabularyMastered Int       @default(0)
+  quizAverage        Float     @default(0)
+  examReadiness      Float     @default(0)
+  streakDays         Int       @default(0)
+  classesBooked      Int       @default(0)
+  classesAttended    Int       @default(0)
+  classesMissed      Int       @default(0)
+  updatedAt          DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  type      NotificationType
+  status    NotificationStatus @default(UNREAD)
+  title     String
+  body      String
+  actionUrl String?
+  createdAt DateTime           @default(now())
+  readAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+}

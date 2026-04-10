@@ -69,8 +69,8 @@ export default function HomePage() {
             <p>No booked classes yet.</p>
           ) : (
             <ul>
-              {bookings.map((booking) => (
-                <li key={booking.id}>
+              {bookings.map((booking, index) => (
+  <li key={`${booking.id}-${index}`}>
                   {booking.time} · {booking.level}
                 </li>
               ))}

@@ -34,11 +34,7 @@ export default async function SubscriptionPage({
       where: {
         userId,
         status: {
-          in: [
-            SubscriptionStatus.ACTIVE,
-            SubscriptionStatus.FROZEN,
-            SubscriptionStatus.GRACE_PERIOD,
-          ],
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.FROZEN, SubscriptionStatus.GRACE_PERIOD],
         },
       },
       orderBy: { createdAt: "desc" },
@@ -63,10 +59,8 @@ export default async function SubscriptionPage({
   }
 
   const hasActiveSubscription =
-    !!currentSubscription &&
-    [SubscriptionStatus.ACTIVE, SubscriptionStatus.GRACE_PERIOD].includes(
-      currentSubscription.status
-    );
+    currentSubscription &&
+    [SubscriptionStatus.ACTIVE, SubscriptionStatus.GRACE_PERIOD].includes(currentSubscription.status);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
