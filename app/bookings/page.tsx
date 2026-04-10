@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import DeleteBookingButton from "./DeleteBookingButton";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("en-GB", {
@@ -129,9 +130,14 @@ export default async function BookingsPage() {
                     </a>
                   )}
 
-                  <CancelBookingButton
-                    action={`/api/bookings/${booking.id}/cancel`}
-                  />
+                  <form action={`/api/bookings/${booking.id}/cancel`} method="POST">
+  <button
+    type="submit"
+    className="rounded-md border px-3 py-2 text-sm"
+  >
+    Cancel booking
+  </button>
+</form>
                 </div>
               </div>
             ))

@@ -54,16 +54,14 @@ export async function POST(req: Request) {
     });
 
     if (
-      existingBooking &&
-      [BookingStatus.BOOKED, BookingStatus.ATTENDED, BookingStatus.MISSED].includes(
-        existingBooking.status
-      )
-    ) {
-      return NextResponse.json(
-        { error: "You already booked this slot" },
-        { status: 400 }
-      );
-    }
+  existingBooking &&
+  ["BOOKED", "ATTENDED", "MISSED"].includes(existingBooking.status)
+) {
+  return NextResponse.json(
+    { error: "Cannot create duplicate booking" },
+    { status: 400 }
+  );
+}
 
     await prisma.$transaction(async (tx) => {
       const freshSlot = await tx.slot.findUnique({

@@ -52,7 +52,7 @@ export async function POST(
       await tx.notification.create({
         data: {
           userId: booking.userId,
-          type: NotificationType.CLASS_CANCELLED,
+          type: NotificationType.CLASS_REMINDER,
           status: NotificationStatus.UNREAD,
           title: "Class cancelled",
           body: "Your booking was cancelled successfully.",

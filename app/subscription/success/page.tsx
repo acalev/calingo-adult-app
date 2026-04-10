@@ -59,8 +59,9 @@ export default async function SubscriptionPage({
   }
 
   const hasActiveSubscription =
-    currentSubscription &&
-    [SubscriptionStatus.ACTIVE, SubscriptionStatus.GRACE_PERIOD].includes(currentSubscription.status);
+  !!currentSubscription &&
+  (currentSubscription.status === SubscriptionStatus.ACTIVE ||
+    currentSubscription.status === SubscriptionStatus.GRACE_PERIOD);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
